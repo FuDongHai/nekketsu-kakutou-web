@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#160f22">
+  <meta name="description" content="热血格斗传说网页版。横屏闯五关，使用拳脚、技能和合体必杀。">
+  <title>热血格斗传说</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="combat.js"></script>
+  <script defer src="arena.js"></script>
+  <script defer src="player.js"></script>
+</head>
+<body>
+  <main id="game-shell" aria-label="热血格斗传说">
+    <canvas id="arena" width="240" height="176" aria-label="格斗场地"></canvas>
+    <div class="vignette"></div>
+    <div class="tools">
+      <button id="sound" type="button" aria-label="静音" aria-pressed="false" title="声音">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z M16 9c3 2 3 4 0 6 M19 6c5 3 5 9 0 12"/></svg>
+      </button>
+      <button id="full" type="button" aria-label="全屏" title="全屏">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></svg>
+      </button>
+      <button id="pause" type="button" aria-label="暂停" title="暂停" hidden>
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 5v14m6-14v14"/></svg>
+      </button>
+    </div>
+    <section class="screen landing" id="home-view">
+      <div class="hero">
+        <p class="edition">单人闯关模式</p>
+        <h1>热血格斗<br><span>传说</span></h1>
+        <p class="intro">红白机原版画面 · 单人五关</p>
+        <div class="actions">
+          <button class="primary" id="choose">开始闯关 <span aria-hidden="true">›</span></button>
+          <button class="secondary" id="levels-btn">关卡选择</button>
+        </div>
+        <p class="keyboard-hint">键盘移动 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> <span>·</span> 跳跃 <kbd>空格</kbd> <span>·</span> 攻击 <kbd>J</kbd><kbd>K</kbd></p>
+      </div>
+      <div class="route" id="route" aria-label="五个关卡"></div>
+    </section>
+    <section class="screen picker" id="skill-view" aria-labelledby="skill-heading" hidden>
+      <div class="pick-body">
+        <button class="back" data-home>‹ 返回</button>
+        <h2 id="skill-heading">选择合体必杀</h2>
+        <p>选择一招带入战斗。释放时搭档残影会协同攻击。</p>
+        <div class="skill-grid" id="skill-grid"></div>
+        <button class="primary" id="fight">进入第 1 关 <span aria-hidden="true">›</span></button>
+      </div>
+    </section>
+    <section class="screen picker" id="level-view" aria-labelledby="level-heading" hidden>
+      <div class="pick-body">
+        <button class="back" data-home>‹ 返回</button>
+        <h2 id="level-heading">关卡选择</h2>
+        <p>击败一关的全部对手，解锁下一关。</p>
+        <div class="level-grid" id="level-grid"></div>
+      </div>
+    </section>
+    <div id="battle-ui" hidden>
+      <div class="hud">
+        <div class="hp-block"><div><strong>国夫</strong><span id="player-life"></span></div><div class="hp-track"><i id="player-meter"></i></div></div>
+        <div class="stage-chip"><b id="stage-num"></b><span id="stage-name"></span></div>
+        <div class="hp-block opposition"><div><strong id="enemy-name"></strong><span id="enemy-life"></span></div><div class="hp-track"><i id="enemy-meter"></i></div></div>
+      </div>
+      <div id="announcement" aria-live="polite"></div>
+      <div id="combo" hidden><strong id="combo-number"></strong><span>连击</span></div>
+      <div id="touch-controls">
+        <div id="stick" aria-label="方向摇杆"><div class="stick-base"><i></i><i></i><i></i><i></i></div><div id="stick-knob"></div></div>
+        <div class="attacks" aria-label="战斗按键">
+          <button class="move dash" data-move="dash"><strong>速</strong><small>马赫踢</small><kbd>U</kbd><span class="countdown"></span></button>
+          <button class="move dragon" data-move="dragon"><strong>旋</strong><small>旋转攻击</small><kbd>I</kbd><span class="countdown"></span></button>
+          <button class="move flame" data-move="flame"><strong>爆</strong><small>爆裂踢</small><kbd>O</kbd><span class="countdown"></span></button>
+          <button class="move ultimate" data-move="ultimate"><strong>必</strong><small id="ultimate-name">合体必杀</small><kbd>L</kbd><span class="countdown"></span></button>
+          <button class="move jump" data-move="jump"><strong>跳</strong><small>跳跃</small><kbd>␣</kbd><span class="countdown"></span></button>
+          <button class="move kick" data-move="kick"><strong>脚</strong><small>脚</small><kbd>K</kbd><span class="countdown"></span></button>
+          <button class="move punch" data-move="punch"><strong>拳</strong><small>拳</small><kbd>J</kbd><span class="countdown"></span></button>
+        </div>
+      </div>
+    </div>
+    <section class="screen end-screen" id="result-view" aria-labelledby="result-title" hidden>
+      <div class="result-card">
+        <p class="edition" id="result-caption"></p>
+        <h2 id="result-title"></h2>
+        <p id="result-note"></p>
+        <div class="actions"><button class="primary" id="result-action"></button><button class="secondary" data-home>返回首页</button></div>
+      </div>
+    </section>
+    <section class="screen end-screen" id="pause-view" aria-label="游戏已暂停" hidden>
+      <div class="result-card"><h2>游戏已暂停</h2><div class="actions"><button class="primary" id="resume">继续战斗</button><button class="secondary" data-home>返回首页</button></div></div>
+    </section>
+    <div id="rotate-tip" hidden>横屏操作空间更大 <button id="dismiss-rotate" aria-label="关闭横屏提示">×</button></div>
+    <noscript>请启用 JavaScript 以运行游戏。</noscript>
+  </main>
+</body>
+</html>
