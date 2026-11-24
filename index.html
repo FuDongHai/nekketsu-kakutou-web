@@ -39,11 +39,27 @@
       </div>
       <div class="route" id="route" aria-label="五个关卡"></div>
     </section>
+    <section class="screen picker" id="character-view" aria-labelledby="character-heading" hidden>
+      <div class="pick-body cast-picker">
+        <button class="back" data-home>‹ 返回首页</button>
+        <h2 id="character-heading">选择角色</h2>
+        <div id="job-tabs" role="group" aria-label="职业"></div>
+        <div class="cast-layout">
+          <div id="character-list" role="group" aria-label="角色"></div>
+          <div class="cast-details" aria-live="polite">
+            <strong id="cast-name"></strong>
+            <span id="cast-stats"></span>
+            <div id="cast-skills"></div>
+            <button class="primary" id="confirm-character">选择合体必杀 ›</button>
+          </div>
+        </div>
+      </div>
+    </section>
     <section class="screen picker" id="skill-view" aria-labelledby="skill-heading" hidden>
       <div class="pick-body">
-        <button class="back" data-home>‹ 返回</button>
+        <button class="back" id="back-to-cast">‹ 重新选人</button>
         <h2 id="skill-heading">选择合体必杀</h2>
-        <p>选择一招带入战斗。释放时搭档残影会协同攻击。</p>
+        <p>搭肩后可由搭档自动投出，也可在指针进入色块时再按拳或必杀。</p>
         <div class="skill-grid" id="skill-grid"></div>
         <button class="primary" id="fight">进入第 1 关 <span aria-hidden="true">›</span></button>
       </div>
@@ -58,18 +74,18 @@
     </section>
     <div id="battle-ui" hidden>
       <div class="hud">
-        <div class="hp-block"><div><strong>国夫</strong><span id="player-life"></span></div><div class="hp-track"><i id="player-meter"></i></div></div>
+        <div class="hp-block"><div><strong id="player-name">国夫</strong><span id="player-life"></span></div><div class="hp-track"><i id="player-meter"></i></div></div>
         <div class="stage-chip"><b id="stage-num"></b><span id="stage-name"></span></div>
-        <div class="hp-block opposition"><div><strong id="enemy-name"></strong><span id="enemy-life"></span></div><div class="hp-track"><i id="enemy-meter"></i></div></div>
+        <div id="enemy-bars" class="opposition" aria-label="对手体力"></div>
       </div>
       <div id="announcement" aria-live="polite"></div>
       <div id="combo" hidden><strong id="combo-number"></strong><span>连击</span></div>
       <div id="touch-controls">
         <div id="stick" aria-label="方向摇杆"><div class="stick-base"><i></i><i></i><i></i><i></i></div><div id="stick-knob"></div></div>
         <div class="attacks" aria-label="战斗按键">
-          <button class="move dash" data-move="dash"><strong>速</strong><small>马赫踢</small><kbd>U</kbd><span class="countdown"></span></button>
-          <button class="move dragon" data-move="dragon"><strong>旋</strong><small>旋转攻击</small><kbd>I</kbd><span class="countdown"></span></button>
-          <button class="move flame" data-move="flame"><strong>爆</strong><small>爆裂踢</small><kbd>O</kbd><span class="countdown"></span></button>
+          <button class="move dash" data-move="skill1"><strong>速</strong><small>马赫踢</small><kbd>U</kbd><span class="countdown"></span></button>
+          <button class="move dragon" data-move="skill2"><strong>旋</strong><small>旋转攻击</small><kbd>I</kbd><span class="countdown"></span></button>
+          <button class="move flame" data-move="skill3"><strong>爆</strong><small>爆裂踢</small><kbd>O</kbd><span class="countdown"></span></button>
           <button class="move ultimate" data-move="ultimate"><strong>必</strong><small id="ultimate-name">合体必杀</small><kbd>L</kbd><span class="countdown"></span></button>
           <button class="move jump" data-move="jump"><strong>跳</strong><small>跳跃</small><kbd>␣</kbd><span class="countdown"></span></button>
           <button class="move kick" data-move="kick"><strong>脚</strong><small>脚</small><kbd>K</kbd><span class="countdown"></span></button>

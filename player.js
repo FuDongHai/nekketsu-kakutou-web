@@ -1,19 +1,19 @@
 'use strict';
 
-const {Campaign, stages, moves, ultimates} = Fighting;
+const {Campaign, stages, characters, jobs, techniques, slots, ultimates} = Fighting;
 const byId = id => document.getElementById(id);
 const shell=byId('game-shell');
 const arena=new Arena(byId('arena'));
 const panels = {
-  home:byId('home-view'), skills:byId('skill-view'), levels:byId('level-view'),
+  home:byId('home-view'), cast:byId('character-view'), skills:byId('skill-view'), levels:byId('level-view'),
   result:byId('result-view'), pause:byId('pause-view')
 };
-const keyboardMoves = {KeyJ:'punch',KeyK:'kick',KeyU:'dash',KeyI:'dragon',KeyO:'flame',KeyL:'ultimate',Space:'jump'};
+const keyboardMoves = {KeyJ:'punch',KeyK:'kick',KeyU:'skill1',KeyI:'skill2',KeyO:'skill3',KeyL:'ultimate',Space:'jump'};
 const directionKeys = new Set(['KeyA','KeyD','KeyW','KeyS','ArrowLeft','ArrowRight','ArrowUp','ArrowDown']);
 const held = new Set(), pointers = new Map();
 const moveButtons = [...document.querySelectorAll('[data-move]')];
 const stick=byId('stick'), knob=byId('stick-knob');
-let stickId=null, ax=0, ay=0, view='home', stage=0, chosen='ice', game=new Campaign(0), queued=null;
+let stickId=null, ax=0, ay=0, view='home', stage=0, hero='kunio', chosen='ice', game=new Campaign(0), queued=null;
 let intro=0, special=0, finishing=0, elapsed=0, last=0, rotateDismissed=false;
 let unlock=readUnlock(), audio=null, muted=false;
 const maxStage=stages.length-1;
@@ -40,6 +40,48 @@ stages.forEach(({name},index)=>{
   stop.append(make('b',String(index+1).padStart(2,'0')),document.createTextNode(name));
   byId('route').append(stop);
 });
+
+let enemyHUD=[];
+function showCharacter(id){
+  hero=id;
+  const who=characters[id];
+  const job=jobs[who.job];
+  byId('cast-name').textContent=who.name+'　'+who.kana;
+  byId('cast-stats').textContent=job.name+'　 HP '+who.hp;
+  byId('cast-skills').replaceChildren(...who.skills.map(key=>make('span',techniques[key].label)));
+  for(const button of byId('character-list').children)button.setAttribute('aria-pressed',String(button.dataset.hero===id));
+}
+function showJob(job,selected){
+  for(const button of byId('job-tabs').children)button.setAttribute('aria-pressed',String(button.dataset.job===job));
+  const available=Object.entries(characters).filter(([,fighter])=>fighter.job===job);
+  byId('character-list').replaceChildren(...available.map(([id,fighter])=>{
+    const button=make('button','','cast-option');
+    button.type='button';
+    button.dataset.hero=id;
+    const portrait=make('i','','portrait');
+    portrait.style.backgroundPosition='0 -'+(fighter.row*64)+'px';
+    button.append(portrait,make('strong',fighter.name));
+    button.onclick=()=>{showCharacter(id);sound('select');};
+    return button;
+  }));
+  showCharacter(selected||available[0][0]);
+}
+for(const [id,job] of Object.entries(jobs)){
+  const button=make('button',job.name);
+  button.dataset.job=id;
+  button.onclick=()=>showJob(id);
+  byId('job-tabs').append(button);
+}
+function pickCharacter(){
+  showJob(characters[hero].job,hero);
+  setView('cast');
+}
+byId('confirm-character').onclick=()=>{
+  chosen=jobs[characters[hero].job].element;
+  skillOptions();
+  setView('skills');
+};
+byId('back-to-cast').onclick=pickCharacter;
 
 function skillOptions(){
   byId('skill-grid').replaceChildren(...Object.entries(ultimates).map(([id,move])=>{
@@ -70,8 +112,7 @@ function levels(){
 function chooseStage(index){
   stage=index;
   byId('fight').firstChild.textContent='进入第 '+(stage+1)+' 关 ';
-  skillOptions();
-  setView('skills');
+  pickCharacter();
 }
 function setView(next){
   clearInput();
@@ -84,10 +125,32 @@ function setView(next){
 }
 function start(){
   arena.reset();
-  game=new Campaign(stage,combatEvent,chosen);
+  game=new Campaign(stage,combatEvent,chosen,hero);
   intro=.85;
   special=0;
   finishing=0;
+  byId('player-name').textContent=game.player.name;
+  for(const slot of slots){
+    const skillButton=moveButtons.find(button=>button.dataset.move===slot);
+    const move=game.moveFor(slot);
+    skillButton.hidden=!move;
+    if(move){
+      skillButton.querySelector('strong').textContent=move.glyph;
+      skillButton.querySelector('small').textContent=move.label;
+    }
+  }
+  enemyHUD=game.enemies.map(enemy=>{
+    const block=make('div','','hp-block');
+    const heading=make('div');
+    const life=make('span');
+    const meter=make('i');
+    const track=make('div','','hp-track');
+    heading.append(make('strong',enemy.name),life);
+    track.append(meter);
+    block.append(heading,track);
+    return {block,life,meter,enemy};
+  });
+  byId('enemy-bars').replaceChildren(...enemyHUD.map(row=>row.block));
   const button=moveButtons.find(b=>b.dataset.move==='ultimate');
   byId('ultimate-name').textContent=game.ultimate.label;
   button.querySelector('strong').textContent=game.ultimate.glyph;
@@ -115,30 +178,29 @@ function end(){
 }
 function combatEvent(type,actor,move){
   arena.react(type,actor,move);
-  if(type==='attack'&&move.ultimate) special=1.07;
-  if(type==='strike'||type==='hit') sound(type,move);
+  if(type==='launch')special=.52;
+  if(type==='strike'||type==='hit'||type==='launch') sound(type,move);
 }
 function updateHUD(){
-  const player=game.player, enemies=game.enemies;
-  const count=enemies.filter(e=>e.hp>0).length;
-  const enemyHP=enemies.reduce((sum,e)=>sum+e.hp,0);
-  const enemyMax=enemies.reduce((sum,e)=>sum+e.maxHp,0);
+  const player=game.player;
   byId('player-life').textContent=player.hp+'/'+player.maxHp;
   byId('player-meter').style.transform='scaleX('+player.hp/player.maxHp+')';
-  byId('enemy-meter').style.transform='scaleX('+enemyHP/enemyMax+')';
-  byId('enemy-name').textContent=stage===maxStage?'虎面兄弟':enemies.length===1?enemies[0].name:'对手';
-  byId('enemy-life').textContent=count+' / '+enemies.length;
+  for(const {life,meter,enemy} of enemyHUD){
+    life.textContent=enemy.hp+'/'+enemy.maxHp;
+    meter.style.transform='scaleX('+enemy.hp/enemy.maxHp+')';
+  }
   byId('combo').hidden=game.comboTime<=0||game.combo<2;
   byId('combo-number').textContent=game.combo;
   const message=game.result==='victory'?'':intro>0?game.stage.name:special>0?game.ultimate.label:'';
   if(byId('announcement').textContent!==message) byId('announcement').textContent=message;
   for(const button of moveButtons){
     const key=button.dataset.move;
+    if(button.hidden)continue;
     const remaining=player.cooldown[key]||0;
     const waiting=remaining>.15 && key!=='punch' && key!=='kick';
     button.classList.toggle('waiting',waiting);
     button.classList.toggle('pressed',Array.from(pointers.values()).includes(key));
-    const label=key==='ultimate'?game.ultimate.label:key==='jump'?'跳跃':moves[key].label;
+    const label=key==='ultimate'?game.ultimate.label:key==='jump'?'跳跃':game.moveFor(key).label;
     const seconds=waiting ? Math.ceil(remaining) : '';
     const text=String(seconds);
     const countdown=button.querySelector('.countdown');
@@ -266,7 +328,7 @@ function tick(time){
       if(queued&&((queued.t-=dt)<=0||game.use(queued.key)))queued=null;
       const punch=held.has('KeyJ')||Array.from(pointers.values()).includes('punch');
       const kick=held.has('KeyK')||Array.from(pointers.values()).includes('kick');
-      if(!queued){
+      if(!queued && !game.team){
         if(punch)game.use('punch');
         else if(kick)game.use('kick');
       }
